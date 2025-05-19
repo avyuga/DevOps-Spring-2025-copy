@@ -149,3 +149,55 @@ jobs:
           fi
 
           echo "All coverage reports are present!"
+
+  sonarqube:
+    needs: [test-frontend-javascript, test-frontend-django, test-backend]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download JavaScript coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: js-coverage
+        path: frontend/coverage
+    - name: Download Django coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: django-coverage
+        path: frontend/coverage
+    - name: Download Backend coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-coverage
+        path: backend/coverage
+
+    - name: Check coverage reports existence
+      run: |
+        # Check Frontend JavaScript coverage
+        if [ ! -f "frontend/coverage/lcov.info" ]; then
+          echo "Frontend JavaScript coverage report not found!"
+          exit 1
+        fi
+
+        # Check Frontend Django coverage
+        if [ ! -f "frontend/coverage/django-coverage.xml" ]; then
+          echo "Frontend Django coverage report not found!"
+          exit 1
+        fi
+
+        # Check Backend Test coverage
+        if [ ! -f "backend/coverage/coverage.xml" ]; then
+          echo "Backend coverage report not found!"
+          exit 1
+        fi
+
+        echo "All coverage reports are present!"
+
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v5.2.0
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
